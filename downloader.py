@@ -1,11 +1,10 @@
+import array
 from tkinter import *
 from tkinter import filedialog
 import urllib.request
 import customtkinter 
 from pytube import *
 from PIL import Image, ImageTk
-
-youtubeObject=None
 
 #Setup Window
 root = customtkinter.CTk() 
@@ -42,11 +41,15 @@ def errorPopUp(message):
 
 def downloadPopUp(url):
     #Connect to youtube to verify link and get the video
-    youtubeObject = YouTube(url)
+    global youtubeObject 
+    youtubeObject= YouTube(url)
     #Get the Thumbnail from the video to show to user
     thumbnailUrl=youtubeObject.thumbnail_url
+    title=youtubeObject.title
+    uploader=youtubeObject.author
     urllib.request.urlretrieve(thumbnailUrl,"thumbnail.png")
-    img=ImageTk.PhotoImage(Image.open("thumbnail.png"))
+    img=ImageTk.PhotoImage(Image.open("thumbnail.png").resize((600,400)))
+    
 
     #Pop Up a Extra Window
     top=Toplevel(root)
@@ -55,23 +58,41 @@ def downloadPopUp(url):
     #Create a frame for the left and right
     frameLeft=Frame(top)
     frameLeft.grid(row=0,column=0)
+    #frameLeft.pack()
     frameRight=Frame(top)
     frameRight.grid(row=0,column=1)
+    #frameRight.pack()
     #Display the thumbnail in the frame
     panel=Label(frameLeft,image=img)
     panel.image=img
     panel.pack()
-
+    #Make the download button and put it under the thumbnail
     downloadButton=customtkinter.CTkButton(frameLeft, font=("Arial",20), text="Download" , command=download, fg_color="red" , hover_color=("#DB3E39", "#821D1A"))
     downloadButton.pack()
 
     #Add the Title and uploader to the right frame
+    titleLabel=Label(frameRight, text=title, font=("Arial" ,20))
+    titleLabel.pack()
+    uploaderLabel=Label(frameRight, text="By "+uploader,  font=("Arial" ,15))
+    uploaderLabel.pack()
 
-    #Add menu to select Quality that you want to download
+    #get all avalible streams
+    global arr
+    arr=youtubeObject.streams.filter(file_extension="mp4", progressive=True) #Progessive streams only so audio and video are combined
+    global options
+    options=['Highest']
+    for i in arr:
+         options.append(i.resolution)
 
+    #Create Dropdown menu
+    global clicked
+    clicked=StringVar()
+    drop= OptionMenu(frameLeft,clicked,*options)
+    clicked.set( "Highest" )
+    drop.pack()
     #Download the highest Resolution
     #I want to change this so you can pick the resolution you download
-    youtubeObject = youtubeObject.streams.get_highest_resolution()
+    
     
 #Add a button to confirm that the video can be found
 def find():
@@ -86,15 +107,27 @@ def find():
 #On click the find button will call the find method
 findButton._command=find
 def download():
+    global youtubeObject
+    #filter the quality based on the drop down menu
+    try:
+        #Select Filtered Object
+        if(clicked.get().__eq__("Highest")):
+            youtubeObject=youtubeObject.streams.get_highest_resolution()
+        else:
+            #loop through the array of valid videos and get the correct resolution
+            for i in arr:
+                if(i.resolution.__eq__(clicked.get())):
+                    youtubeObject=i
+                    break
 
-        try:
-            #Get user to choose where to save the file
-            fn=filedialog.askdirectory()
-            youtubeObject.download(fn)
-            #Everything Worked
-            errorPopUp("Download Completed successfully")
-        except:
-            errorPopUp("An Error has occured")
+        #Get user to choose where to save the file
+        fn=filedialog.askdirectory()
+        #Filter returns an array so download the first one in the array
+        youtubeObject.download(fn)
+        #Everything Worked
+        errorPopUp("Download Completed successfully")
+    except:
+        errorPopUp("An Error has occured")
 
 
 #Start the GUI program
