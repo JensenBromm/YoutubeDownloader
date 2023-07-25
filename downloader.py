@@ -1,4 +1,3 @@
-import array
 from tkinter import *
 from tkinter import filedialog
 import urllib.request
@@ -7,9 +6,8 @@ from pytube import *
 from PIL import Image, ImageTk
 
 #Setup Window
-root = customtkinter.CTk() 
+root = Tk() 
 #Configure GUI defaults
-customtkinter.set_appearance_mode("dark") 
 #Change the title of the frame
 root.title("Youtube Video Downloader")
 #Make the window
@@ -17,17 +15,25 @@ root.geometry("1280x720")
 frame = Frame(root)
 frame.pack() # .pack() puts things into the the gui window
 
-#Add a title to the frame
-titleLabel= Label(frame, text="Youtube Downloader", font=("Arial" ,25) ,background="gray",foreground="white")
-titleLabel.pack()
+#Add a youtube logo to the frame
+img=ImageTk.PhotoImage(Image.open("youtubeLogo.png").resize((400,200)))
+panel=Label(frame,image=img)
+panel.image=img    
+panel.pack()
+
 
 #Add Text Area for URL
-urlArea=Text(frame, height=1, width=52)
-urlArea.insert(INSERT,"Enter Youtube Link:")
+urlArea=Entry(frame, width=45, font=("Arial",15))
+urlArea.insert(0,"Enter Youtube Link:")
 urlArea.pack()
+#Make temporary text disappear when user enters text box
+def temp_text(e):
+   urlArea.delete(0,"end")
+urlArea.bind("<FocusIn>", temp_text)
+
 
 #creat the button
-findButton=customtkinter.CTkButton(frame, font=("Arial",20), text="Find Video", fg_color="red" , hover_color=("#DB3E39", "#821D1A"))
+findButton=customtkinter.CTkButton(frame, font=("Arial",25), text="Find Video", fg_color="red" , hover_color=("#DB3E39", "#821D1A"))
 findButton.pack()
 
 
@@ -96,14 +102,16 @@ def downloadPopUp(url):
     
 #Add a button to confirm that the video can be found
 def find():
-    url=urlArea.get("1.0","end")
+    url=urlArea.get()
     #Remove any leading text before URL
-    if(url.__contains__("www.youtube.com")):
+    if (not url.__contains__("www.")):
+        errorPopUp("Please enter a valid link. Needs to contain 'www.'")
+    elif (url.__contains__("www.youtube.com/watch")):
         index=url.find("www.") #get index of the first w in www.
         url=url[index: url.__len__()] #remove everything before the www. to extract just the link
         downloadPopUp(url)
     else:
-         errorPopUp("Link Is Not From Youtube")
+         errorPopUp("Link Is Not From Youtube or is not a valid video")
 #On click the find button will call the find method
 findButton._command=find
 def download():
@@ -129,6 +137,6 @@ def download():
     except:
         errorPopUp("An Error has occured")
 
-
+print(frame.winfo_children())
 #Start the GUI program
 root.mainloop()
